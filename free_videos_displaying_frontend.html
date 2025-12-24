@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Inline Video Queue</title>
+<style>
+:root{
+  --bg:#0f1724;
+  --card:#0b1220;
+  --muted:#9aa6b2;
+  --accent:#06b6d4;
+  --soft:#e6eef5;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  padding:0;
+  background:linear-gradient(180deg,#071025 0%, #071827 100%);
+  color:var(--soft);
+  font-family:Arial, Helvetica, sans-serif;
+}
+body{
+  padding:16px;
+  overflow-x:hidden;
+}
+
+/* Queue */
+.queue{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  overflow-y:auto;
+  max-height:100vh;
+}
+.queue-item{
+  background:rgba(255,255,255,0.05);
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  transition:0.15s,opacity .3s ease-in;
+  opacity:0;
+}
+.queue-item.visible{opacity:1;}
+.queue-item.active{
+  border:1px solid var(--accent);
+  box-shadow:0 6px 20px rgba(6,182,212,.3);
+}
+.thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:8px;
+  background:#000;
+  overflow:hidden;
+  background-size:cover;
+  background-position:center;
+}
+.q-title{font-size:15px;font-weight:600;margin:6px 0 2px}
+.q-sub{font-size:12px;color:var(--muted)}
+.q-id{font-size:11px;color:var(--muted)}
+.q-link{font-size:12px;color:var(--soft);margin-top:4px}
+.q-link a{color:#4ecbff;text-decoration:none}
+.q-link a:hover{text-decoration:underline}
+
+/* Share button */
+.share-btn{
+  margin-top:6px;
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.2);
+  color:var(--soft);
+  cursor:pointer;
+}
+.share-btn:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+/* Controls */
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  padding:14px 0;
+  position:sticky;
+  bottom:10px;
+}
+.btn{
+  padding:8px 14px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  color:var(--soft);
+  cursor:pointer;
+  font-size:14px;
+}
+.btn:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+/* Loader */
+.loader{
+  text-align:center;
+  padding:20px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+/* Mobile */
+@media (max-width:640px){
+  h1{font-size:1.8rem}
+  h2{font-size:1.25rem}
+  iframe{height:350px !important}
+}
+</style>
+</head>
+
+<body>
+
+<!-- Queue container -->
+<div class="queue" id="queueList">
+  <div class="loader" id="loader">Loading videos...</div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="btn" id="prevBtn">Prev</button>
+  <button class="btn" id="nextBtn">Next</button>
+</div>
+
+<script>
+/* -------------------------------------------------------------------------
+ *  Constants & small helpers
+ * ----------------------------------------------------------------------- */
+const BACKEND     = 'https://free_videos_displaying_backend.ajaia-backend.workers.dev';
+const STORAGE_KEY = 'clicked_ids';
+const BATCH_SIZE  = 30;
+
+/* -------------------------------------------------------------------------
+ *  LocalStorage helpers
+ * ----------------------------------------------------------------------- */
+function getStoredIds(){
+  try{
+    const s = localStorage.getItem(STORAGE_KEY);
+    return s ? JSON.parse(s) : [];
+  }catch{ return []; }
+}
+function store(id){
+  const ids = new Set(getStoredIds());
+  ids.add(id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify([...ids]));
+}
+function clearStored(){ localStorage.removeItem(STORAGE_KEY); }
+
+/* -------------------------------------------------------------------------
+ *  Send stored clicks to backend (analytics)
+ * ----------------------------------------------------------------------- */
+async function sendStoredToBackend(){
+  const ids = getStoredIds();
+  if(!ids.length) return;
+  try{
+    await fetch(`${BACKEND}/clicked_videos`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({video_ids:ids})
+    });
+    console.log('Sent analytics IDs:',ids);
+    clearStored();
+  }catch(e){
+    console.error('Failed to send analytics IDs',e);
+  }
+}
+
+/* -------------------------------------------------------------------------
+ *  Slugify – converts a title into a URL‑friendly string
+ * ----------------------------------------------------------------------- */
+function slugify(str){
+  return String(str || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g,'')          // remove non‑word chars
+    .replace(/[\s_-]+/g,'-')          // collapse whitespace & underscores
+    .replace(/^-+|-+$/g,'');          // trim leading/trailing hyphens
+}
+
+/* -------------------------------------------------------------------------
+ *  Global state
+ * ----------------------------------------------------------------------- */
+const queueList = document.getElementById('queueList');
+const loader    = document.getElementById('loader');
+let videos = [], displayedCount = 0;
+let currentIndex = 0;
+
+/* -------------------------------------------------------------------------
+ *  Load videos from the backend (once)
+ * ----------------------------------------------------------------------- */
+async function loadVideos(){
+  loader.textContent = 'Fetching videos...';
+  try{
+    const res   = await fetch(BACKEND);
+    videos      = await res.json();
+    loader.remove();
+
+    // render the first batch (so that UI is not empty)
+    renderNextBatch();
+
+    // If there is a video_id in the URL, navigate to it
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoId   = urlParams.get('video_id');
+    if(videoId){
+      const targetIdx = videos.findIndex(v => String(v.id) === videoId);
+      if(targetIdx !== -1){
+        // make sure the card exists (render enough batches)
+        renderBatchesUpTo(targetIdx);
+        // wait a tick for the DOM to be ready, then play it
+        setTimeout(()=>playInline(targetIdx), 0);
+      }
+    }
+  }catch{
+    loader.textContent = '❌ Failed to load videos from backend';
+  }
+}
+
+/* -------------------------------------------------------------------------
+ *  Render a batch (default 30) of video cards
+ * ----------------------------------------------------------------------- */
+function renderNextBatch(){
+  const batch = videos.slice(displayedCount, displayedCount + BATCH_SIZE);
+  batch.forEach((v,i)=>{
+    const card   = document.createElement('div');
+    card.className = 'queue-item';
+    const absIdx = displayedCount + i;   // absolute index in the whole array
+
+    card.innerHTML = `
+      <div class="thumb" style="background-image:url('${v.archive_org_iframe_image_link||""}')"></div>
+      <div class="q-title">${v.title||'Untitled'}</div>
+      <div class="q-sub">By ${v.username||'Unknown'}</div>
+      <div class="q-id">ID: ${v.id||'?'}</div>
+      <div class="q-link">Link 1: <a href="${v.link_1}" target="_blank">${v.link_1||'No link'}</a></div>
+      <div class="q-link">Link 2: <a href="${v.link_2}" target="_blank">${v.link_2||'No link'}</a></div>
+      <button class="share-btn">Share</button>
+    `;
+
+    // clicking the whole card → play video
+    card.onclick = () => playInline(absIdx);
+
+    // share button handling (stop propagation so we don’t also play)
+    const shareBtn = card.querySelector('.share-btn');
+    shareBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const link = `${window.location.origin}/${slugify(v.title)}?video_id=${encodeURIComponent(v.id)}`;
+      copyToClipboard(link);
+    });
+
+    queueList.appendChild(card);
+    requestAnimationFrame(()=>card.classList.add('visible'));
+  });
+  displayedCount += batch.length;
+
+  // All videos loaded → give a friendly end‑message
+  if(displayedCount >= videos.length){
+    const endMsg = document.createElement('div');
+    endMsg.className = 'loader';
+    endMsg.textContent = '🎉 All videos loaded';
+    queueList.appendChild(endMsg);
+  }
+}
+
+/* -------------------------------------------------------------------------
+ *  Render enough batches so that a given index exists in the DOM
+ * ----------------------------------------------------------------------- */
+function renderBatchesUpTo(targetIdx){
+  while(displayedCount <= targetIdx && displayedCount < videos.length){
+    renderNextBatch();
+  }
+}
+
+/* -------------------------------------------------------------------------
+ *  Infinite scroll – load more when scrolling near the bottom
+ * ----------------------------------------------------------------------- */
+queueList.addEventListener('scroll',()=>{
+  const nearBottom = queueList.scrollTop + queueList.clientHeight >= queueList.scrollHeight - 150;
+  if(nearBottom && displayedCount < videos.length){
+    renderNextBatch();
+  }
+});
+
+/* -------------------------------------------------------------------------
+ *  Play a video inline (replaces thumbnail with <video>)
+ * ----------------------------------------------------------------------- */
+function playInline(idx){
+  currentIndex = idx;
+  const v = videos[idx];
+  const items = document.querySelectorAll('.queue-item');
+
+  items.forEach((el,i)=>{
+    const isActive = i===idx;
+    el.classList.toggle('active', isActive);
+    const thumb = el.querySelector('.thumb');
+
+    if(isActive){
+      // replace thumbnail with video element
+      thumb.style.backgroundImage = '';
+      thumb.innerHTML = `
+        <video controls controlslist="nodownload" autoplay playsinline
+               style="width:100%;height:100%"
+               src="${v.mp4_link}"
+               poster="${v.archive_org_iframe_image_link}"></video>`;
+    }else{
+      // restore thumbnail background
+      thumb.innerHTML = '';
+      if(videos[i]) thumb.style.backgroundImage = `url('${videos[i].archive_org_iframe_image_link}')`;
+    }
+  });
+
+  // Smooth‑scroll the active card into view
+  items[idx]?.scrollIntoView({behavior:'smooth',block:'center'});
+
+  // Record the click for analytics
+  if(v.id != null) store(Number(v.id));
+}
+
+/* -------------------------------------------------------------------------
+ *  Prev / Next navigation buttons
+ * ----------------------------------------------------------------------- */
+document.getElementById('prevBtn').onclick = ()=>{
+  if(videos.length) playInline((currentIndex-1+videos.length)%videos.length);
+};
+document.getElementById('nextBtn').onclick = ()=>{
+  if(videos.length) playInline((currentIndex+1)%videos.length);
+};
+
+/* -------------------------------------------------------------------------
+ *  Clipboard helper – tries the modern API, falls back to a textarea hack
+ * ----------------------------------------------------------------------- */
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text)
+      .then(()=>alert('Share link copied to clipboard!'))
+      .catch(()=>fallbackCopy(text));
+  }else{
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; // avoid scrolling to bottom
+  document.body.appendChild(ta);
+  ta.select();
+  try{
+    document.execCommand('copy');
+    alert('Share link copied to clipboard!');
+  }catch{
+    prompt('Copy the link manually:', text);
+  }
+  document.body.removeChild(ta);
+}
+
+/* -------------------------------------------------------------------------
+ *  Initialise the app
+ * ----------------------------------------------------------------------- */
+window.addEventListener('load', async ()=>{
+  // 1️⃣ Send any stored click‑ids (analytics)
+  await sendStoredToBackend();
+
+  // 2️⃣ Load the video catalog
+  await loadVideos();
+});
+</script>
+
+</body>
+</html>

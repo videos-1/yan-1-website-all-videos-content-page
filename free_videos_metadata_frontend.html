@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Archive Video Uploader</title>
+  <style>
+    :root {
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#60a5fa;
+      --muted:#94a3b8;
+      --text:#e6eef8;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Inter,system-ui,Arial,sans-serif;
+      background:linear-gradient(180deg,#071024 0%,#07172a 100%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:24px;
+    }
+    .app{
+      width:100%;
+      max-width:900px;
+      background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
+      border-radius:16px;
+      padding:20px;
+      border:1px solid rgba(255,255,255,0.03);
+      box-shadow:0 10px 30px rgba(2,6,23,0.6);
+    }
+    header{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .search{flex:1;display:flex;width:100%;max-width:600px}
+    .search input{
+      flex:1;
+      padding:12px 16px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.05);
+      background:rgba(255,255,255,0.02);
+      color:var(--text);
+      outline:none;
+      font-size:15px;
+    }
+    .search button{
+      margin-left:8px;
+      padding:10px 14px;
+      border-radius:10px;
+      border:none;
+      background:var(--accent);
+      color:#042033;
+      font-weight:600;
+      cursor:pointer;
+      transition:0.2s;
+    }
+    .search button:hover{opacity:0.9}
+    .btn{
+      padding:10px 14px;
+      border-radius:10px;
+      border:none;
+      background:rgba(255,255,255,0.03);
+      color:var(--text);
+      cursor:pointer;
+      transition:0.2s;
+    }
+    .btn:hover{background:rgba(255,255,255,0.08)}
+    .primary{background:var(--accent);color:#062235}
+    .small{font-size:13px;color:var(--muted)}
+    .page{display:none;margin-top:18px}
+    .page.active{display:block}
+    input, textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.04);
+      background:transparent;
+      color:var(--text);
+      outline:none;
+      font-size:15px;
+    }
+    textarea{min-height:80px;resize:vertical}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .error{color:#ff8b8b;font-weight:600}
+    .notice{
+      background:rgba(255,255,255,0.02);
+      padding:10px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.02);
+      font-size:13px;
+    }
+    .preview{margin-top:12px;border-radius:10px;overflow:hidden;background:#000}
+    video{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius:10px;
+      pointer-events:auto;
+    }
+    video::-webkit-media-controls-enclosure{overflow:hidden}
+    video::-webkit-media-controls-download-button,
+    video::-internal-media-controls-download-button{display:none !important}
+    video[controlslist]{controlslist:nodownload}
+    .search-results{margin-top:24px}
+    .search-item{
+      margin-top:16px;
+      background:rgba(255,255,255,0.03);
+      border-radius:10px;
+      padding:14px;
+      transition:transform .2s;
+    }
+    .search-item:hover{transform:scale(1.01)}
+    .thumb{
+      width:100%;
+      border-radius:10px;
+      overflow:hidden;
+      cursor:pointer;
+    }
+    .thumb img{
+      width:100%;
+      display:block;
+      border-radius:10px;
+    }
+    .details{margin-top:8px;font-size:14px;line-height:1.5;word-wrap:break-word}
+    .details a{color:var(--accent);text-decoration:none;word-break:break-all}
+    .details a:hover{text-decoration:underline}
+    footer{display:none}
+    @media (max-width:768px){
+      body{padding:12px}
+      .app{padding:16px}
+      .row-2{grid-template-columns:1fr}
+      .search{flex-direction:column}
+      .search button{margin-left:0;margin-top:8px;width:100%}
+    }
+
+    /* Share button (copied from the Inline Video Queue page) */
+    .share-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      margin-left:8px;
+      padding:4px 8px;
+      font-size:13px;
+      font-weight:600;
+      color:#000;
+      background:var(--accent);
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+      transition:background .2s;
+    }
+    .share-btn:hover{
+      background:#4ecbff;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app" role="main">
+
+    <!-- TOP NOTICE (highlighted) -->
+    <div class="notice" style="margin-bottom:12px;background:rgba(255,255,255,0.05);border:1px solid var(--accent);font-weight:600;">
+      All content belongs to its respective owners. Credits to original creators.
+    </div>
+
+    <header>
+      <div class="search">
+        <input id="globalSearch" placeholder="Search by id, title or username" aria-label="Search" />
+        <button id="searchBtn">Search</button>
+      </div>
+      <button id="openUpload" class="btn primary" style="min-width:120px;">Upload</button>
+    </header>
+
+    <section class="view">
+      <div class="notice" style="margin-top:14px">
+        Click <strong>Upload</strong> to open uploader form. All fields are mandatory.
+      </div>
+
+      <!-- Upload Form -->
+      <div id="uploadPage" class="page">
+        <h3 style="margin-top:16px;margin-bottom:10px">Upload to Archive</h3>
+        <form id="uploadForm" novalidate>
+          <label>Archive.org iframe / URL</label>
+          <textarea id="archiveVideo" placeholder="Paste full iframe or archive.org URL"></textarea>
+
+          <label>Archive.org image link</label>
+          <input id="archiveImage" type="text" placeholder="https://archive.org/...jpg" />
+
+          <label>Title</label>
+          <input id="title" type="text" placeholder="Video title" />
+
+          <div class="row-2">
+            <div>
+              <label>Link 1</label>
+              <input id="link1" type="text" placeholder="Any link 1" />
+            </div>
+            <div>
+              <label>Link 2</label>
+              <input id="link2" type="text" placeholder="Any link 2" />
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div>
+              <label>Username</label>
+              <input id="username" type="text" placeholder="Uploader username" />
+            </div>
+            <div>
+              <label>Phone number</label>
+              <input id="phone" type="tel" placeholder="Phone number" />
+            </div>
+          </div>
+
+          <div class="meta small">All fields required. We'll auto‑generate MP4 link.</div>
+
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button id="previewBtn" type="button" class="btn">Preview MP4</button>
+            <button id="postBtn" type="submit" class="btn primary">Post</button>
+            <div id="formStatus" class="small" style="margin-left:8px;min-height:18px"></div>
+          </div>
+
+          <div id="previewArea" class="preview" style="display:none;margin-top:12px">
+            <video id="previewVideo" controls playsinline controlslist="nodownload"></video>
+          </div>
+        </form>
+      </div>
+
+      <!-- Search Results -->
+      <div id="searchResults" class="search-results"></div>
+    </section>
+  </main>
+
+  <script>
+    /* -------------------- Constants -------------------- */
+    const BACKEND_UPLOAD = 'https://free_videos_metadata_backend.ajaia-backend.workers.dev/upload';
+    const BACKEND_SEARCH = 'https://free_videos_metadata_backend.ajaia-backend.workers.dev/search';
+    const STORAGE_KEY = 'watched_videos';
+
+    /* Page‑level share metadata */
+    const PAGE_ID   = 1;
+    const PAGE_NAME = 'free videos content';
+
+    /* Global array for the current search results – used by the share logic */
+    let currentSearchResults = [];
+
+    /* -------------------- Helper Functions -------------------- */
+    function extractArchiveId(input) {
+      if (!input) return null;
+      const iframeMatch = input.match(/src\s*=\s*"([^"]+)"/i);
+      const url = iframeMatch ? iframeMatch[1] : input.trim();
+      const clean = url.split('?')[0];
+      const patterns = [
+        /archive\.org\/embed\/([^\/\?\s]+)/i,
+        /archive\.org\/details\/([^\/\?\s]+)/i,
+        /archive\.org\/download\/([^\/\?\s]+)/i
+      ];
+      for (const p of patterns) {
+        const m = clean.match(p);
+        if (m && m[1]) return decodeURIComponent(m[1]);
+      }
+      return null;
+    }
+
+    async function getMp4FromMetadata(id) {
+      const res = await fetch(`https://archive.org/metadata/${id}`);
+      if (!res.ok) throw new Error('Metadata not found');
+      const data = await res.json();
+      const file = data?.files?.find(f => f.name.toLowerCase().endsWith('.mp4'));
+      if (!file) throw new Error('No MP4 found');
+      return `https://archive.org/download/${id}/${encodeURIComponent(file.name)}`;
+    }
+
+    function storeVideoId(id) {
+      if (!id) return;
+      let ids = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        ids = raw ? JSON.parse(raw) : [];
+      } catch {}
+      if (!ids.includes(id)) {
+        ids.push(id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+        console.log('Stored video ID:', id);
+      }
+    }
+
+    /* -------------------- Share Logic (copied from the first page) -------------------- */
+    function buildShareText(video) {
+      const title = video.title || 'Untitled video';
+      const vidId = video.id != null ? video.id : '-';
+      const user = video.username || '-';
+      return `Page name: ${PAGE_NAME}
+Page ID: ${PAGE_ID}
+Video title: ${title}
+Video ID: ${vidId}
+Username: ${user}
+App name: YAN_1
+Developer: YAN`;
+    }
+
+    /**
+     * Create a composite image that contains the thumbnail and the required information.
+     * Returns a Blob (image/jpeg).
+     */
+    async function createCompositeImage(video) {
+      const imgUrl = video.archive_org_iframe_image_link;
+      if (!imgUrl) throw new Error('No thumbnail URL');
+
+      // Load thumbnail (must be CORS‑enabled)
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.crossOrigin = 'anonymous';
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = imgUrl;
+      });
+
+      const MAX_WIDTH = 800;
+      const scale = Math.min(1, MAX_WIDTH / img.width);
+      const thumbW = img.width * scale;
+      const thumbH = img.height * scale;
+
+      const lines = [
+        `Page name: ${PAGE_NAME}`,
+        `Page ID: ${PAGE_ID}`,
+        `Video title: ${video.title || 'Untitled'}`,
+        `Video ID: ${video.id ?? '-'}`,
+        `Username: ${video.username || '-'}`,
+        `App name: YAN_1`,
+        `Developer: YAN`
+      ];
+
+      const padding = 20;
+      const lineHeight = 28;
+      const textHeight = lines.length * lineHeight + padding;
+      const canvasW = Math.round(thumbW);
+      const canvasH = Math.round(thumbH + textHeight);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasW;
+      canvas.height = canvasH;
+      const ctx = canvas.getContext('2d');
+
+      // white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvasW, canvasH);
+
+      // thumbnail on top
+      ctx.drawImage(img, 0, 0, thumbW, thumbH);
+
+      // text under the thumbnail
+      ctx.fillStyle = '#333333';
+      ctx.font = '20px Arial';
+      ctx.textBaseline = 'top';
+      const startY = thumbH + padding / 2;
+      lines.forEach((txt, idx) => {
+        ctx.fillText(txt, padding, startY + idx * lineHeight);
+      });
+
+      // Export to Blob
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas toBlob failed'));
+        }, 'image/jpeg', 0.92);
+      });
+    }
+
+    /**
+     * Share a video using Web Share, Android bridge, or WhatsApp fallback.
+     */
+    async function shareVideo(idx) {
+      const video = currentSearchResults[idx];
+      if (!video) return;
+
+      // 1️⃣ Try native Web‑Share API
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [] })) {
+          const blob = await createCompositeImage(video);
+          const file = new File([blob], 'video-share.jpg', { type: blob.type });
+          if (navigator.share && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: video.title || '' });
+            console.log('✅ shared via standard Web‑Share');
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Web‑Share API not usable (expected in WebView)', e);
+      }
+
+      // 2️⃣ Android bridge
+      if (window.Android && typeof window.Android.shareImage === 'function') {
+        try {
+          const blob = await createCompositeImage(video);
+          const dataUrl = await new Promise((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.onerror = rej;
+            fr.readAsDataURL(blob);
+          });
+          const fileName = `video_${video.id ?? Date.now()}.jpg`;
+          const text = buildShareText(video);
+          window.Android.shareImage(dataUrl, fileName, video.title || 'Video', text);
+          console.log('✅ delegated share to Android bridge');
+          return;
+        } catch (e) {
+          console.error('Bridge share failed → fallback', e);
+        }
+      }
+
+      // 3️⃣ WhatsApp fallback – text‑only
+      const wa = `https://api.whatsapp.com/send?text=${encodeURIComponent(buildShareText(video))}`;
+      window.open(wa, '_blank');
+    }
+
+    /* -------------------- UI Interactions -------------------- */
+    // Open/close upload form
+    document.getElementById('openUpload').addEventListener('click', () => {
+      document.getElementById('uploadPage').classList.toggle('active');
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    // Preview MP4 button
+    document.getElementById('previewBtn').addEventListener('click', async () => {
+      const id = extractArchiveId(document.getElementById('archiveVideo').value);
+      const status = document.getElementById('formStatus');
+      if (!id) return (status.innerHTML = '<span class="error">Invalid Archive.org link</span>');
+      try {
+        const mp4 = await getMp4FromMetadata(id);
+        document.getElementById('previewVideo').src = mp4;
+        document.getElementById('previewArea').style.display = 'block';
+        status.textContent = 'Preview ready ✔️';
+      } catch (err) {
+        status.innerHTML = `<span class="error">${err.message}</span>`;
+      }
+    });
+
+    // Upload form submission
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('formStatus');
+
+      const archiveVideo = document.getElementById('archiveVideo').value.trim();
+      const archiveImage = document.getElementById('archiveImage').value.trim();
+      const title = document.getElementById('title').value.trim();
+      const link1 = document.getElementById('link1').value.trim();
+      const link2 = document.getElementById('link2').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      if (![archiveVideo, archiveImage, title, link1, link2, username, phone].every(Boolean)) {
+        return (status.innerHTML = '<span class="error">All fields required.</span>');
+      }
+
+      if (!/^https?:\/\/(www\.)?archive\.org\//i.test(archiveImage)) {
+        return (status.innerHTML = '<span class="error">Image link must be from archive.org</span>');
+      }
+
+      const id = extractArchiveId(archiveVideo);
+      if (!id) return (status.innerHTML = '<span class="error">Invalid archive link.</span>');
+
+      try {
+        status.textContent = 'Fetching MP4...';
+        const mp4_link = await getMp4FromMetadata(id);
+        const payload = {
+          mp4_link,
+          archive_org_iframe_image_link: archiveImage,
+          title,
+          link_1: link1,
+          link_2: link2,
+          username,
+          phone_number: phone
+        };
+        const res = await fetch(BACKEND_UPLOAD, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) status.innerHTML = '<strong>✅ Uploaded successfully!</strong>';
+        else status.innerHTML = `<span class="error">Upload failed: ${res.status}</span>`;
+      } catch (err) {
+        status.innerHTML = `<span class="error">${err.message}</span>`;
+      }
+    });
+
+    // Search button handling
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      const q = document.getElementById('globalSearch').value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+      if (!q) return alert('Type id/title/username to search.');
+      resultsDiv.innerHTML = '<div class="small">Searching...</div>';
+
+      try {
+        const res = await fetch(`${BACKEND_SEARCH}?search=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+
+        const videos = Array.isArray(data) ? data : data.id ? [data] : [];
+
+        // Keep a reference for the share logic
+        currentSearchResults = videos;
+
+        if (videos.length === 0) {
+          resultsDiv.innerHTML = '<div class="small">No results found.</div>';
+          return;
+        }
+
+        // Render items with a Share button (index is stored in data-index)
+        resultsDiv.innerHTML = videos
+          .map((v, i) => `
+            <div class="search-item">
+              <div class="thumb" id="thumb-${v.id}">
+                <img src="${v.archive_org_iframe_image_link}" alt="Thumbnail" />
+              </div>
+              <div class="video" id="video-${v.id}" style="display:none;margin-top:12px">
+                <video
+                  src="${v.mp4_link}"
+                  controls
+                  playsinline
+                  controlslist="nodownload"
+                  data-video-id="${v.id}"
+                  data-phone-number="${v.phone_number ? v.phone_number : ''}"
+                ></video>
+              </div>
+              <div class="details">
+                <strong>ID:</strong> ${v.id}<br>
+                <strong>Title:</strong> ${v.title}<br>
+                <strong>Link 1:</strong> <a href="${v.link_1}" target="_blank">${v.link_1}</a><br>
+                <strong>Link 2:</strong> <a href="${v.link_2}" target="_blank">${v.link_2}</a><br>
+                <strong>Username:</strong> ${v.username}<br>
+                <button class="share-btn" data-index="${i}">Share</button>
+              </div>
+            </div>
+          `)
+          .join('');
+
+        // Attach thumb click, video play, and analytics for each result
+        videos.forEach(v => {
+          const thumb = document.getElementById(`thumb-${v.id}`);
+          const videoCt = document.getElementById(`video-${v.id}`);
+          const video = videoCt.querySelector('video');
+
+          // Show video on thumbnail click
+          thumb.addEventListener('click', () => {
+            document.querySelectorAll('.search-item .video').forEach(c => (c.style.display = 'none'));
+            document.querySelectorAll('.search-item .thumb').forEach(t => (t.style.display = 'block'));
+            thumb.style.display = 'none';
+            videoCt.style.display = 'block';
+          });
+
+          // Pause other videos when this one starts playing
+          video.addEventListener('play', () => {
+            document.querySelectorAll('video').forEach(vid => {
+              if (vid !== video) {
+                try {
+                  vid.pause();
+                  vid.currentTime = 0;
+                } catch (e) {}
+                const parentVideo = vid.closest('.video');
+                if (parentVideo) parentVideo.style.display = 'none';
+                const siblingThumb = parentVideo ? parentVideo.previousElementSibling : null;
+                if (siblingThumb) siblingThumb.style.display = 'block';
+              }
+            });
+          });
+
+          // Store video ID for analytics when playback begins
+          video.addEventListener('playing', () => storeVideoId(v.id));
+        });
+      } catch (err) {
+        resultsDiv.innerHTML = `<div class="error">${err.message}</div>`;
+      }
+    });
+
+    // Delegated click listener for Share buttons inside the search results
+    document.getElementById('searchResults').addEventListener('click', e => {
+      const btn = e.target.closest('.share-btn');
+      if (!btn) return;
+      e.stopPropagation(); // prevent thumbnail click handling
+      const idx = Number(btn.dataset.index);
+      if (!Number.isNaN(idx)) {
+        shareVideo(idx);
+      }
+    });
+
+    // Global listener – store video ID for any video that starts playing (fallback)
+    document.addEventListener(
+      'play',
+      e => {
+        if (e.target && e.target.tagName === 'VIDEO') {
+          const vid = e.target.getAttribute('data-video-id') || e.target.src || null;
+          if (vid) storeVideoId(vid);
+        }
+      },
+      true
+    );
+  </script>
+</body>
+</html>
