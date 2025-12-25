@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Free Videos Content</title>
 
   <!-- Tailwind CSS -->
@@ -39,15 +39,18 @@
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
     }
 
-    /* Fade & glow effects */
+    /* Remove left/right borders only */
+    .glass.no-side-border {
+      border-left: none;
+      border-right: none;
+    }
+
     .fade-in {
       opacity: 0;
       transform: translateY(15px);
       animation: fadeIn 0.9s ease-in-out forwards;
     }
-    @keyframes fadeIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
 
     .glow-text {
       text-shadow: 0 0 10px #38bdf8, 0 0 20px #3b82f6, 0 0 40px #2563eb;
@@ -55,15 +58,15 @@
     }
     @keyframes glow {
       from { text-shadow: 0 0 10px #3b82f6; }
-      to { text-shadow: 0 0 25px #60a5fa, 0 0 50px #3b82f6; }
+      to   { text-shadow: 0 0 25px #60a5fa, 0 0 50px #3b82f6; }
     }
 
     .moving-text {
       animation: moveText 5s linear infinite;
     }
     @keyframes moveText {
-      0% { transform: translateX(-10px); }
-      50% { transform: translateX(10px); }
+      0%   { transform: translateX(-10px); }
+      50%  { transform: translateX(10px); }
       100% { transform: translateX(-10px); }
     }
 
@@ -75,7 +78,7 @@
       background: #0f172a;
     }
 
-    /* === ULTRA‑SLIM TRAIN ANIMATION (≈0.7 cm) === */
+    /* Ultra‑slim train animation */
     .train-container {
       position: relative;
       width: 100%;
@@ -86,7 +89,6 @@
       border-radius: .75rem;
       box-shadow: inset 0 0 20px rgba(59,130,246,.3);
     }
-
     .train-track {
       position: absolute;
       bottom: 5px;
@@ -104,7 +106,6 @@
       from { background-position-x: 0; }
       to   { background-position-x: 40px; }
     }
-
     .train {
       position: absolute;
       bottom: 8px;
@@ -113,13 +114,11 @@
       transform: rotateY(8deg);
       animation: trainMove 9s linear infinite;
     }
-
     @keyframes trainMove {
       0%   { left: -160px; }
       50%  { left: calc(100% - 100px); }
       100% { left: -160px; }
     }
-
     .car {
       width: 60px;
       height: 15px;
@@ -130,7 +129,6 @@
       box-shadow: 0 3px 8px rgba(37,99,235,.4);
       transform: skewX(-5deg);
     }
-
     .wheel {
       position: absolute;
       bottom: -4px;
@@ -143,12 +141,8 @@
     }
     .wheel.left  { left: 5px; }
     .wheel.right { right: 5px; }
+    @keyframes wheelSpin { 100% { transform: rotate(360deg); } }
 
-    @keyframes wheelSpin {
-      100% { transform: rotate(360deg); }
-    }
-
-    /* --------- FULLSCREEN BUTTON HIGHLIGHT ---------- */
     .fullscreen-btn {
       color: #60a5fa;
       font-size: 1.5rem;
@@ -162,22 +156,20 @@
     }
     .fullscreen-btn:active { transform: scale(.9); }
 
-    /* --------- ARROW DECORATIONS FOR FULLSCREEN BUTTON ---------- */
     .arrow-left,
-    .arrow-right{
-      font-weight:600;
-      font-size:1.2rem;
+    .arrow-right {
+      font-weight: 600;
+      font-size: 1.2rem;
     }
-    .arrow-left{
-      color:#00ff00;                               /* bright neon green  */
+    .arrow-left {
+      color:#00ff00;
       text-shadow:0 0 6px #00ff00;
     }
-    .arrow-right{
-      color:#ffd700;                               /* bright gold yellow   */
+    .arrow-right {
+      color:#ffd700;
       text-shadow:0 0 6px #ffd700;
     }
 
-    /* --------- FLOATING FEEDBACK BUTTON ---------- */
     .feedback-btn {
       position: fixed;
       right: 12px;
@@ -201,7 +193,6 @@
       box-shadow: 0 6px 16px rgba(0,0,0,.5);
     }
 
-    /* MOBILE */
     @media (max-width: 640px) {
       h1 { font-size: 1.8rem; }
       h2 { font-size: 1.25rem; }
@@ -218,7 +209,7 @@
   <header class="text-center fade-in mt-6">
     <h1 class="text-4xl sm:text-5xl font-bold text-blue-400 glow-text flex justify-center items-center space-x-2">
       <span>🎬</span>
-      <span style="font-family:'Pacifico', cursive;">Free Videos Content</span>
+      <span style="font-family:'Pacifico',cursive;">Free Videos Content</span>
       <span>💫</span>
     </h1>
 
@@ -230,25 +221,12 @@
     </p>
   </header>
 
-  <!-- SECTION 1: SEARCH & UPLOAD -->
-  <section id="metadata" class="w-full max-w-5xl glass p-6 fade-in">
-    <h2 class="text-2xl font-semibold text-blue-300 mb-4">🔍 Search & Upload Here</h2>
-
-    <!-- FULLSCREEN BUTTON + arrows -->
-    <div class="flex justify-end mb-2 items-center gap-1">
-      <span class="arrow-left">--&gt;</span>
-      <button onclick="openFullscreen('metaFrame')" class="fullscreen-btn"
-              aria-label="Fullscreen search & upload">⛶</button>
-      <span class="arrow-right">&lt;--</span>
-    </div>
-
-    <iframe id="metaFrame" src="free_videos_metadata_frontend.html"
-            class="h-[450px] bg-slate-900"></iframe>
-  </section>
-
-  <!-- SECTION 2: VIDEO DISPLAY + MINI TRAIN -->
-  <section id="videos" class="w-full max-w-5xl glass p-6 fade-in">
-    <h2 class="text-2xl font-semibold text-blue-300 mb-4">🚆 Enjoy the Journey of Videos</h2>
+  <!-- VIDEO DISPLAY (with ultra‑slim train) -->
+  <section id="videos"
+           class="w-full -mx-4 sm:-mx-6 glass py-6 px-0 fade-in no-side-border">
+    <h2 class="text-2xl font-semibold text-blue-300 mb-4">
+      🚆 Enjoy the Journey of Videos
+    </h2>
 
     <!-- Ultra‑Slim Train Animation -->
     <div class="train-container mb-4">
@@ -260,7 +238,7 @@
       </div>
     </div>
 
-    <!-- FULLSCREEN BUTTON + arrows -->
+    <!-- Fullscreen button + arrows -->
     <div class="flex justify-end mb-2 items-center gap-1">
       <span class="arrow-left">--&gt;</span>
       <button onclick="openFullscreen('videoFrame')" class="fullscreen-btn"
@@ -268,9 +246,10 @@
       <span class="arrow-right">&lt;--</span>
     </div>
 
-    <!-- Embedded Video Display -->
-    <iframe id="videoFrame" src="free_videos_displaying_frontend.html"
-            class="h-[500px] bg-slate-900"></iframe>
+    <!-- Embedded video‑display page (full‑bleed) -->
+    <iframe id="videoFrame"
+            src="videos_displaying.html"
+            class="h-[500px] w-full bg-slate-900"></iframe>
   </section>
 
   <!-- FOOTER -->
@@ -299,7 +278,7 @@
     </div>
   </div>
 
-  <!-- FULLSCREEN & FEEDBACK SCRIPTS -->
+  <!-- SCRIPTS (fullscreen & feedback) -->
   <script>
     function openFullscreen(id) {
       const iframe = document.getElementById(id);
@@ -327,12 +306,10 @@
         } else {
           clearInterval(interval);
           modal.classList.add('hidden');
-          // After the countdown, send the user to the discussion page
           window.location.href = 'https://github.com/OpenThoughtVoice/OpenThoughtVoice/discussions/1';
         }
       }, 1000);
     }
   </script>
-
 </body>
 </html>
