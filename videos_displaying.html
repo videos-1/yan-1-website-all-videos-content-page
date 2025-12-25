@@ -25,19 +25,21 @@ body{
   overflow-x:hidden;
 }
 
-/* ----------  Top bar (sticky, single row – now wraps on narrow screens) ---------- */
+/* ----------  Top bar (sticky, flexible) ---------- */
 .top-bar{
   position:sticky;
   top:0;
   display:flex;
+  flex-wrap:wrap;
   align-items:center;
   gap:8px;
   padding:8px;
   background:var(--card);
   z-index:100;
-  box-shadow:0 2px 6px rgba(0,0,0,0.5);
-  flex-wrap:wrap;                     /* allow wrapping on small devices */
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
 }
+
+/* back button (only shown after a search) */
 .back-btn{
   display:none;
   padding:6px 12px;
@@ -53,45 +55,43 @@ body{
   color:#000;
 }
 
-/* the combined search bar – looks like a queue‑item */
-.search-wrapper{
+/* -----------  Search section (input + search button) ------------- */
+.search-section{
   flex:1;
   display:flex;
+  background:rgba(255,255,255,0.05);
   border-radius:10px;
   overflow:hidden;
-  background:rgba(255,255,255,0.05);
-  min-width:0;                     /* allow shrinking on tiny screens */
 }
-.search-wrapper input{
-  flex:1 1 0;
+.search-section input{
+  flex:1;
   border:none;
   padding:6px 10px;
   background:transparent;
   color:var(--soft);
   font-size:14px;
 }
-.search-wrapper input::placeholder{
+.search-section input::placeholder{
   color:#777;
 }
-.search-wrapper input:not(:last-of-type){
-  border-right:1px solid rgba(255,255,255,0.2);
-}
-.search-wrapper button{
-  flex:0 0 auto;
+.search-section button{
+  flex:none;
   padding:6px 12px;
   border:none;
   background:rgba(255,255,255,0.08);
-  border-left:1px solid rgba(255,255,255,0.2);
   color:var(--soft);
   font-size:14px;
   cursor:pointer;
 }
-.search-wrapper button:hover{
+.search-section button:hover{
   background:var(--accent);
   color:#000;
 }
+.search-section button:not(:first-of-type){
+  border-left:1px solid rgba(255,255,255,0.2);
+}
 
-/* upload button (still part of the top bar) */
+/* upload button (same height as the search bar) */
 #uploadBtn{
   padding:6px 12px;
   border-radius:6px;
@@ -104,6 +104,55 @@ body{
 #uploadBtn:hover{
   background:var(--accent);
   color:#000;
+}
+
+/* -----------  Mode toggle (arrow + dropdown) ------------- */
+.mode-toggle{
+  position:relative;
+  align-self:flex-start;               /* left‑align on wide screens */
+}
+.mode-arrow{
+  font-size:1.2rem;
+  font-weight:600;
+  color:#fff;
+  cursor:pointer;
+  user-select:none;
+}
+.mode-menu{
+  position:absolute;
+  top:100%;
+  left:0;
+  margin-top:4px;
+  min-width:120px;
+  background:var(--card);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:8px;
+  padding:8px 0;
+  z-index:1000;
+}
+.mode-item{
+  width:100%;
+  text-align:left;
+  background:none;
+  border:none;
+  padding:4px 12px;
+  color:var(--soft);
+  cursor:pointer;
+}
+.mode-item:hover{
+  background:var(--accent);
+  color:#000;
+}
+.mode-close{
+  position:absolute;
+  top:4px;
+  right:6px;
+  background:none;
+  border:none;
+  color:#ff5555;
+  font-weight:600;
+  font-size:1rem;
+  cursor:pointer;
 }
 
 /* ----------  Queue ---------- */
@@ -119,7 +168,7 @@ body{
   border-radius:10px;
   padding:10px;
   cursor:pointer;
-  transition:0.15s,opacity .3s ease-in;
+  transition:.15s,opacity .3s ease-in;
   opacity:0;
 }
 .queue-item.visible{opacity:1;}
@@ -199,56 +248,11 @@ body{
 }
 .hidden{display:none;}
 
-/* --------------------  RESPONSIVE ADJUSTMENTS  -------------------- */
+/* -------  Responsive tweaks  ------- */
 @media (max-width:640px){
-  /* make the top‑bar stack vertically */
-  .top-bar{
-    align-items:flex-start;
-  }
-
-  /* make the search bar full‑width and stack its fields */
-  .search-wrapper{
-    flex-basis:100%;
-    flex-direction:column;
-    margin-top:8px;
-  }
-  .search-wrapper input,
-  .search-wrapper button{
-    flex:none;
-    width:100%;
-    border-radius:0;
-  }
-  .search-wrapper input{
-    border-right:none;
-    border-bottom:1px solid rgba(255,255,255,0.2);
-    background:rgba(255,255,255,0.05);
-  }
-  .search-wrapper input:last-of-type{
-    border-bottom:none;
-  }
-  .search-wrapper button{
-    border-left:none;
-    border-top:1px solid rgba(255,255,255,0.2);
-    background:rgba(255,255,255,0.08);
-  }
-
-  /* upload button below the search bar, full width */
-  #uploadBtn{
-    width:100%;
-    margin-top:8px;
-    align-self:stretch;
-  }
-
-  /* back button (shown after a search) should also be full width */
-  .back-btn{
-    width:100%;
-    margin-bottom:8px;
-  }
-
-  /* keep any embedded iframe from other pages sized reasonably */
+  .search-section{ flex-basis:100%; }
+  .mode-toggle{ flex-basis:100%; margin-top:4px; }
   iframe{height:350px !important;}
-
-  /* heading sizes for tiny screens */
   h1{font-size:1.8rem}
   h2{font-size:1.25rem}
 }
@@ -261,14 +265,21 @@ body{
 <div class="top-bar">
   <button id="backBtn" class="back-btn">← Back</button>
 
-  <div class="search-wrapper">
-    <input type="text" id="idInput" placeholder="Enter ID">
-    <input type="text" id="titleInput" placeholder="Enter Title">
-    <input type="text" id="usernameInput" placeholder="Enter Username">
+  <div class="search-section">
+    <input type="text" id="searchInput" placeholder="Search by title...">
     <button id="searchBtn">Search</button>
   </div>
 
   <button id="uploadBtn">Upload</button>
+
+  <div class="mode-toggle">
+    <span id="modeArrow" class="mode-arrow">--&gt;</span>
+    <div id="modeMenu" class="mode-menu hidden">
+      <button class="mode-item" data-mode="id">ID</button>
+      <button class="mode-item" data-mode="username">Username</button>
+      <button id="closeModeMenu" class="mode-close">✖</button>
+    </div>
+  </div>
 </div>
 
 <!-- Queue -->
@@ -285,17 +296,14 @@ body{
 </div>
 
 <script>
-/* -------------------------------------------------------------------------
- *  Constants & small helpers
- * ----------------------------------------------------------------------- */
-const BACKEND       = 'https://free_videos_displaying_backend.ajaia-backend.workers.dev';
-const STORAGE_KEY   = 'clicked_ids';
-const BATCH_SIZE    = 30;
-const SHARE_BASE    = 'https://yan-1-related-1.github.io/yan-1-website-shared-links-redirecting/all-videos-content-page-shared-links-redirecting.html';
+/* --------------------------------------------------------------
+   Constants & helpers
+   -------------------------------------------------------------- */
+const BACKEND     = 'https://free_videos_displaying_backend.ajaia-backend.workers.dev';
+const STORAGE_KEY = 'clicked_ids';
+const BATCH_SIZE  = 30;
+const SHARE_BASE  = 'https://yan-1-related-1.github.io/yan-1-website-shared-links-redirecting/all-videos-content-page-shared-links-redirecting.html';
 
-/* -------------------------------------------------------------------------
- *  LocalStorage helpers
- * ----------------------------------------------------------------------- */
 function getStoredIds(){
   try{
     const s = localStorage.getItem(STORAGE_KEY);
@@ -305,13 +313,10 @@ function getStoredIds(){
 function store(id){
   const ids = new Set(getStoredIds());
   ids.add(id);
-  localStorage.setItem(STORAGE_KEY,JSON.stringify([...ids]));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
 }
 function clearStored(){ localStorage.removeItem(STORAGE_KEY); }
 
-/* -------------------------------------------------------------------------
- *  Send stored clicks to backend (analytics)
- * ----------------------------------------------------------------------- */
 async function sendStoredToBackend(){
   const ids = getStoredIds();
   if(!ids.length) return;
@@ -328,46 +333,57 @@ async function sendStoredToBackend(){
   }
 }
 
-/* -------------------------------------------------------------------------
- *  Global state
- * ----------------------------------------------------------------------- */
-const queueList = document.getElementById('queueList');
-const loader    = document.getElementById('loader');
+/* --------------------------------------------------------------
+   Global state & DOM refs
+   -------------------------------------------------------------- */
+const queueList   = document.getElementById('queueList');
+const loader      = document.getElementById('loader');
 
-let allVideos       = [];          // full catalog from backend
-let currentVideos   = [];          // currently displayed (all or filtered)
-let displayedCount = 0;           // # of items already rendered from currentVideos
-let currentIndex   = -1;          // index of the playing video (within currentVideos)
+let allVideos       = [];   // full catalog
+let currentVideos   = [];   // filtered / displayed list
+let displayedCount  = 0;    // # rendered items
+let currentIndex    = -1;   // playing video index
+let searchMode      = 'title'; // default mode
 
-/* -------------------------------------------------------------------------
- *  DOM references
- * ----------------------------------------------------------------------- */
-const idInput        = document.getElementById('idInput');
-const titleInput     = document.getElementById('titleInput');
-const usernameInput  = document.getElementById('usernameInput');
-const searchBtn      = document.getElementById('searchBtn');
-const backBtn        = document.getElementById('backBtn');
-const uploadBtn      = document.getElementById('uploadBtn');
-const uploadOverlay  = document.getElementById('uploadOverlay');
-const closeUploadBtn = document.getElementById('closeUploadBtn');
+const searchInput   = document.getElementById('searchInput');
+const searchBtn     = document.getElementById('searchBtn');
+const backBtn       = document.getElementById('backBtn');
+const uploadBtn     = document.getElementById('uploadBtn');
+const uploadOverlay = document.getElementById('uploadOverlay');
+const closeUploadBtn= document.getElementById('closeUploadBtn');
+const modeArrow     = document.getElementById('modeArrow');
+const modeMenu      = document.getElementById('modeMenu');
 
-/* -------------------------------------------------------------------------
- *  Load videos from the backend (once)
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Helper: update placeholder according to mode
+   -------------------------------------------------------------- */
+function updatePlaceholder(){
+  if(searchMode==='title'){
+    searchInput.placeholder = 'Search by title...';
+  }else if(searchMode==='id'){
+    searchInput.placeholder = 'Enter ID';
+  }else if(searchMode==='username'){
+    searchInput.placeholder = 'Enter username';
+  }
+}
+
+/* --------------------------------------------------------------
+   Load videos (once)
+   -------------------------------------------------------------- */
 async function loadVideos(){
   loader.textContent = 'Fetching videos...';
   try{
     const res = await fetch(BACKEND);
-    allVideos       = await res.json();
-    currentVideos   = allVideos;
-    loader.remove();                // remove placeholder
-    renderNextBatch();              // first batch
+    allVideos     = await res.json();
+    currentVideos = allVideos;
+    loader.remove();
+    renderNextBatch();
 
-    // Direct‑link support ?video_id=…
+    // direct‑link support ?video_id=…
     const urlParams = new URLSearchParams(window.location.search);
     const videoId   = urlParams.get('video_id');
     if(videoId){
-      const targetIdx = allVideos.findIndex(v => String(v.id) === videoId);
+      const targetIdx = allVideos.findIndex(v=>String(v.id)===videoId);
       if(targetIdx !== -1){
         renderBatchesUpTo(targetIdx);
         setTimeout(()=>playInline(targetIdx),0);
@@ -378,24 +394,20 @@ async function loadVideos(){
   }
 }
 
-/* -------------------------------------------------------------------------
- *  Render enough batches so that a given index exists (used for direct links)
- * ----------------------------------------------------------------------- */
-function renderBatchesUpTo(targetIdx){
-  while(displayedCount <= targetIdx && displayedCount < currentVideos.length){
+/* --------------------------------------------------------------
+   Rendering
+   -------------------------------------------------------------- */
+function renderBatchesUpTo(idx){
+  while(displayedCount <= idx && displayedCount < currentVideos.length){
     renderNextBatch();
   }
 }
-
-/* -------------------------------------------------------------------------
- *  Render a batch (default 30) of video cards
- * ----------------------------------------------------------------------- */
 function renderNextBatch(){
   const batch = currentVideos.slice(displayedCount, displayedCount + BATCH_SIZE);
   batch.forEach((v,i)=>{
-    const card   = document.createElement('div');
+    const card = document.createElement('div');
     card.className = 'queue-item';
-    const absIdx = displayedCount + i;   // index inside currentVideos
+    const absIdx = displayedCount + i;
     card.dataset.idx = absIdx;
 
     card.innerHTML = `
@@ -408,10 +420,10 @@ function renderNextBatch(){
       <button class="share-btn">Share</button>
     `;
 
-    /* click whole card → play video */
+    // play on whole‑card click
     card.onclick = () => playInline(absIdx);
 
-    /* share button – independent from card click */
+    // share button (independent)
     const shareBtn = card.querySelector('.share-btn');
     shareBtn.addEventListener('click', e => {
       e.stopPropagation();
@@ -421,7 +433,6 @@ function renderNextBatch(){
     queueList.appendChild(card);
     requestAnimationFrame(()=>card.classList.add('visible'));
   });
-
   displayedCount += batch.length;
 
   // end‑of‑list message
@@ -433,9 +444,9 @@ function renderNextBatch(){
   }
 }
 
-/* -------------------------------------------------------------------------
- *  Infinite scroll – load more when near bottom
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Infinite scroll
+   -------------------------------------------------------------- */
 queueList.addEventListener('scroll',()=>{
   const nearBottom = queueList.scrollTop + queueList.clientHeight >= queueList.scrollHeight - 150;
   if(nearBottom && displayedCount < currentVideos.length){
@@ -443,9 +454,9 @@ queueList.addEventListener('scroll',()=>{
   }
 });
 
-/* -------------------------------------------------------------------------
- *  Play a video inline (swap thumbnail for <video>)
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Play video inline
+   -------------------------------------------------------------- */
 function playInline(idx){
   currentIndex = idx;
   const video = currentVideos[idx];
@@ -467,16 +478,15 @@ function playInline(idx){
     }
   });
 
-  const activeItem = queueList.querySelector('.queue-item[data-index="'+idx+'"]') ||
-                     queueList.querySelector('.queue-item[data-idx="'+idx+'"]');
+  const activeItem = queueList.querySelector('.queue-item[data-idx="'+idx+'"]');
   activeItem?.scrollIntoView({behavior:'smooth',block:'center'});
 
   if(video.id!=null) store(Number(video.id));
 }
 
-/* -------------------------------------------------------------------------
- *  Share a video – Web Share API when available, otherwise copy to clipboard
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Share helpers
+   -------------------------------------------------------------- */
 function shareVideo(video){
   const link = `${SHARE_BASE}?video_id=${encodeURIComponent(video.id)}`;
   if(navigator.share){
@@ -488,10 +498,6 @@ function shareVideo(video){
     copyToClipboard(link);
   }
 }
-
-/* -------------------------------------------------------------------------
- *  Clipboard helper
- * ----------------------------------------------------------------------- */
 function copyToClipboard(text){
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text)
@@ -507,45 +513,34 @@ function fallbackCopy(text){
   ta.style.position = 'fixed';
   document.body.appendChild(ta);
   ta.select();
-  try{
-    document.execCommand('copy');
-    alert('Share link copied to clipboard!');
-  }catch{
-    prompt('Copy the link manually:', text);
-  }
+  try{ document.execCommand('copy'); alert('Share link copied to clipboard!'); }
+  catch{ prompt('Copy the link manually:', text); }
   document.body.removeChild(ta);
 }
 
-/* -------------------------------------------------------------------------
- *  Search handling – three fields in a single row (responsive)
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Search handling (single bar, mode‑switchable)
+   -------------------------------------------------------------- */
 function performSearch(){
-  const idVal    = idInput.value.trim();
-  const titleVal = titleInput.value.trim().toLowerCase();
-  const userVal  = usernameInput.value.trim().toLowerCase();
-
-  // nothing typed → restore full list
-  if(!idVal && !titleVal && !userVal){
+  const query = searchInput.value.trim();
+  if(!query){
     backToAllVideos();
     return;
   }
 
-  const filtered = allVideos.filter(v=>{
-    let ok = true;
-    if(idVal){
-      ok = ok && String(v.id) === idVal;               // exact ID match
-    }
-    if(titleVal){
-      ok = ok && (v.title||'').toLowerCase().includes(titleVal);
-    }
-    if(userVal){
-      ok = ok && (v.username||'').toLowerCase().includes(userVal);
-    }
-    return ok;
-  });
+  let filtered = [];
+  if(searchMode==='title'){
+    const q = query.toLowerCase();
+    filtered = allVideos.filter(v => (v.title||'').toLowerCase().includes(q));
+  }else if(searchMode==='id'){
+    filtered = allVideos.filter(v => String(v.id) === query);
+  }else if(searchMode==='username'){
+    const q = query.toLowerCase();
+    filtered = allVideos.filter(v => (v.username||'').toLowerCase().includes(q));
+  }
 
-  currentVideos   = filtered;
-  displayedCount  = 0;
+  currentVideos  = filtered;
+  displayedCount = 0;
   queueList.innerHTML = '';
   queueList.scrollTop = 0;
 
@@ -557,56 +552,60 @@ function performSearch(){
   }else{
     renderNextBatch();
   }
-
   backBtn.style.display = 'inline-block';
 }
 
-/* -------------------------------------------------------------------------
- *  Return to the original (un‑filtered) list
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Back to full list
+   -------------------------------------------------------------- */
 function backToAllVideos(){
-  currentVideos   = allVideos;
-  displayedCount  = 0;
+  searchMode = 'title';
+  updatePlaceholder();
+  currentVideos  = allVideos;
+  displayedCount = 0;
   queueList.innerHTML = '';
   queueList.scrollTop = 0;
   renderNextBatch();
 
   backBtn.style.display = 'none';
-  idInput.value = '';
-  titleInput.value = '';
-  usernameInput.value = '';
+  searchInput.value = '';
 }
 
-/* -------------------------------------------------------------------------
- *  Upload overlay controls
- * ----------------------------------------------------------------------- */
-uploadBtn.addEventListener('click',()=>{
-  uploadOverlay.classList.remove('hidden');
-});
-closeUploadBtn.addEventListener('click',()=>{
-  uploadOverlay.classList.add('hidden');
-});
+/* --------------------------------------------------------------
+   Mode‑menu handling
+   -------------------------------------------------------------- */
+modeArrow.addEventListener('click',()=>{ modeMenu.classList.toggle('hidden'); });
 
-/* -------------------------------------------------------------------------
- *  Search UI listeners
- * ----------------------------------------------------------------------- */
-searchBtn.addEventListener('click',performSearch);
-[idInput, titleInput, usernameInput].forEach(inp=>{
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){
-      e.preventDefault();
-      performSearch();
-    }
+document.querySelectorAll('.mode-item').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    const mode = e.target.dataset.mode;
+    if(mode){ searchMode = mode; updatePlaceholder(); }
+    modeMenu.classList.add('hidden');
   });
+});
+document.getElementById('closeModeMenu').addEventListener('click',()=>modeMenu.classList.add('hidden'));
+
+/* --------------------------------------------------------------
+   Upload overlay controls
+   -------------------------------------------------------------- */
+uploadBtn.addEventListener('click',()=>uploadOverlay.classList.remove('hidden'));
+closeUploadBtn.addEventListener('click',()=>uploadOverlay.classList.add('hidden'));
+
+/* --------------------------------------------------------------
+   UI listeners
+   -------------------------------------------------------------- */
+searchBtn.addEventListener('click',performSearch);
+searchInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); performSearch(); }
 });
 backBtn.addEventListener('click',backToAllVideos);
 
-/* -------------------------------------------------------------------------
- *  Initialise the app
- * ----------------------------------------------------------------------- */
+/* --------------------------------------------------------------
+   Initialise app
+   -------------------------------------------------------------- */
 window.addEventListener('load', async()=>{
-  await sendStoredToBackend();   // analytics
-  await loadVideos();            // fetch video catalog
+  await sendStoredToBackend();
+  await loadVideos();
 });
 </script>
 
