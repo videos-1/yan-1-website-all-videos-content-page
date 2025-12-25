@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Inline Video Queue</title>
 <style>
 :root{
@@ -16,16 +16,97 @@
 html,body{
   margin:0;
   padding:0;
-  background:linear-gradient(180deg,#071025 0%, #071827 100%);
+  background:linear-gradient(180deg,#071025 0%,#071827 100%);
   color:var(--soft);
-  font-family:Arial, Helvetica, sans-serif;
+  font-family:Arial,Helvetica,sans-serif;
 }
 body{
   padding:16px;
   overflow-x:hidden;
 }
 
-/* Queue */
+/* ----------  Top bar (sticky, single row) ---------- */
+.top-bar{
+  position:sticky;
+  top:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px;
+  background:var(--card);
+  z-index:100;
+  box-shadow:0 2px 6px rgba(0,0,0,0.5);
+  flex-wrap:nowrap;                /* keep everything on one line */
+}
+.back-btn{
+  display:none;
+  padding:6px 12px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  color:var(--soft);
+  cursor:pointer;
+  flex-shrink:0;
+}
+.back-btn:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+/* the combined search bar – looks like a queue‑item */
+.search-wrapper{
+  flex:1;
+  display:flex;
+  border-radius:10px;
+  overflow:hidden;
+  background:rgba(255,255,255,0.05);
+  min-width:0;                     /* allow shrinking on tiny screens */
+}
+.search-wrapper input{
+  flex:1 1 0;
+  border:none;
+  padding:6px 10px;
+  background:transparent;
+  color:var(--soft);
+  font-size:14px;
+}
+.search-wrapper input::placeholder{
+  color:#777;
+}
+.search-wrapper input:not(:last-of-type){
+  border-right:1px solid rgba(255,255,255,0.2);
+}
+.search-wrapper button{
+  flex:0 0 auto;
+  padding:6px 12px;
+  border:none;
+  background:rgba(255,255,255,0.08);
+  border-left:1px solid rgba(255,255,255,0.2);
+  color:var(--soft);
+  font-size:14px;
+  cursor:pointer;
+}
+.search-wrapper button:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+/* upload button (still part of the top bar) */
+#uploadBtn{
+  padding:6px 12px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  color:var(--soft);
+  cursor:pointer;
+  flex-shrink:0;
+}
+#uploadBtn:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+/* ----------  Queue ---------- */
 .queue{
   display:flex;
   flex-direction:column;
@@ -51,7 +132,6 @@ body{
   aspect-ratio:16/9;
   border-radius:8px;
   background:#000;
-  overflow:hidden;
   background-size:cover;
   background-position:center;
 }
@@ -78,30 +158,7 @@ body{
   color:#000;
 }
 
-/* Controls */
-.controls{
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  padding:14px 0;
-  position:sticky;
-  bottom:10px;
-}
-.btn{
-  padding:8px 14px;
-  border-radius:8px;
-  background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.2);
-  color:var(--soft);
-  cursor:pointer;
-  font-size:14px;
-}
-.btn:hover{
-  background:var(--accent);
-  color:#000;
-}
-
-/* Loader */
+/* Loader / end‑message */
 .loader{
   text-align:center;
   padding:20px;
@@ -109,7 +166,40 @@ body{
   font-size:14px;
 }
 
-/* Mobile */
+/* ----------  Upload overlay ---------- */
+.upload-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.9);
+  display:flex;
+  flex-direction:column;
+  z-index:2000;
+}
+.upload-header{
+  display:flex;
+  justify-content:flex-end;
+  padding:8px;
+}
+.upload-header .close-btn{
+  background:rgba(255,255,255,0.2);
+  border:none;
+  border-radius:4px;
+  padding:4px 8px;
+  font-size:14px;
+  cursor:pointer;
+  color:var(--soft);
+}
+.upload-header .close-btn:hover{
+  background:var(--accent);
+  color:#000;
+}
+.upload-iframe{
+  flex:1;
+  border:none;
+}
+.hidden{display:none;}
+
+/* Mobile tweaks */
 @media (max-width:640px){
   h1{font-size:1.8rem}
   h2{font-size:1.25rem}
@@ -120,24 +210,41 @@ body{
 
 <body>
 
-<!-- Queue container -->
+<!-- Persistent top bar -->
+<div class="top-bar">
+  <button id="backBtn" class="back-btn">← Back</button>
+
+  <div class="search-wrapper">
+    <input type="text" id="idInput" placeholder="Enter ID">
+    <input type="text" id="titleInput" placeholder="Enter Title">
+    <input type="text" id="usernameInput" placeholder="Enter Username">
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <button id="uploadBtn">Upload</button>
+</div>
+
+<!-- Queue -->
 <div class="queue" id="queueList">
   <div class="loader" id="loader">Loading videos...</div>
 </div>
 
-<!-- Controls -->
-<div class="controls">
-  <button class="btn" id="prevBtn">Prev</button>
-  <button class="btn" id="nextBtn">Next</button>
+<!-- Upload overlay (full‑screen) -->
+<div id="uploadOverlay" class="upload-overlay hidden">
+  <div class="upload-header">
+    <button id="closeUploadBtn" class="close-btn">✖</button>
+  </div>
+  <iframe src="videos_uploading.html" class="upload-iframe"></iframe>
 </div>
 
 <script>
 /* -------------------------------------------------------------------------
  *  Constants & small helpers
  * ----------------------------------------------------------------------- */
-const BACKEND     = 'https://free_videos_displaying_backend.ajaia-backend.workers.dev';
-const STORAGE_KEY = 'clicked_ids';
-const BATCH_SIZE  = 30;
+const BACKEND       = 'https://free_videos_displaying_backend.ajaia-backend.workers.dev';
+const STORAGE_KEY   = 'clicked_ids';
+const BATCH_SIZE    = 30;
+const SHARE_BASE    = 'https://yan-1-related-1.github.io/yan-1-website-shared-links-redirecting/all-videos-content-page-shared-links-redirecting.html';
 
 /* -------------------------------------------------------------------------
  *  LocalStorage helpers
@@ -175,24 +282,27 @@ async function sendStoredToBackend(){
 }
 
 /* -------------------------------------------------------------------------
- *  Slugify – converts a title into a URL‑friendly string
- * ----------------------------------------------------------------------- */
-function slugify(str){
-  return String(str || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g,'')          // remove non‑word chars
-    .replace(/[\s_-]+/g,'-')          // collapse whitespace & underscores
-    .replace(/^-+|-+$/g,'');          // trim leading/trailing hyphens
-}
-
-/* -------------------------------------------------------------------------
  *  Global state
  * ----------------------------------------------------------------------- */
 const queueList = document.getElementById('queueList');
 const loader    = document.getElementById('loader');
-let videos = [], displayedCount = 0;
-let currentIndex = 0;
+
+let allVideos       = [];          // full catalog from backend
+let currentVideos   = [];          // currently displayed (all or filtered)
+let displayedCount = 0;           // # of items already rendered from currentVideos
+let currentIndex   = -1;          // index of the playing video (within currentVideos)
+
+/* -------------------------------------------------------------------------
+ *  DOM references
+ * ----------------------------------------------------------------------- */
+const idInput        = document.getElementById('idInput');
+const titleInput     = document.getElementById('titleInput');
+const usernameInput  = document.getElementById('usernameInput');
+const searchBtn      = document.getElementById('searchBtn');
+const backBtn        = document.getElementById('backBtn');
+const uploadBtn      = document.getElementById('uploadBtn');
+const uploadOverlay  = document.getElementById('uploadOverlay');
+const closeUploadBtn = document.getElementById('closeUploadBtn');
 
 /* -------------------------------------------------------------------------
  *  Load videos from the backend (once)
@@ -200,23 +310,20 @@ let currentIndex = 0;
 async function loadVideos(){
   loader.textContent = 'Fetching videos...';
   try{
-    const res   = await fetch(BACKEND);
-    videos      = await res.json();
-    loader.remove();
+    const res = await fetch(BACKEND);
+    allVideos       = await res.json();
+    currentVideos   = allVideos;
+    loader.remove();                // remove placeholder
+    renderNextBatch();              // first batch
 
-    // render the first batch (so that UI is not empty)
-    renderNextBatch();
-
-    // If there is a video_id in the URL, navigate to it
+    // Direct‑link support ?video_id=…
     const urlParams = new URLSearchParams(window.location.search);
     const videoId   = urlParams.get('video_id');
     if(videoId){
-      const targetIdx = videos.findIndex(v => String(v.id) === videoId);
+      const targetIdx = allVideos.findIndex(v => String(v.id) === videoId);
       if(targetIdx !== -1){
-        // make sure the card exists (render enough batches)
         renderBatchesUpTo(targetIdx);
-        // wait a tick for the DOM to be ready, then play it
-        setTimeout(()=>playInline(targetIdx), 0);
+        setTimeout(()=>playInline(targetIdx),0);
       }
     }
   }catch{
@@ -225,17 +332,27 @@ async function loadVideos(){
 }
 
 /* -------------------------------------------------------------------------
+ *  Render enough batches so that a given index exists (used for direct links)
+ * ----------------------------------------------------------------------- */
+function renderBatchesUpTo(targetIdx){
+  while(displayedCount <= targetIdx && displayedCount < currentVideos.length){
+    renderNextBatch();
+  }
+}
+
+/* -------------------------------------------------------------------------
  *  Render a batch (default 30) of video cards
  * ----------------------------------------------------------------------- */
 function renderNextBatch(){
-  const batch = videos.slice(displayedCount, displayedCount + BATCH_SIZE);
+  const batch = currentVideos.slice(displayedCount, displayedCount + BATCH_SIZE);
   batch.forEach((v,i)=>{
     const card   = document.createElement('div');
     card.className = 'queue-item';
-    const absIdx = displayedCount + i;   // absolute index in the whole array
+    const absIdx = displayedCount + i;   // index inside currentVideos
+    card.dataset.idx = absIdx;
 
     card.innerHTML = `
-      <div class="thumb" style="background-image:url('${v.archive_org_iframe_image_link||""}')"></div>
+      <div class="thumb" style="background-image:url('${v.archive_org_iframe_image_link||""}')" data-bg="${v.archive_org_iframe_image_link||""}"></div>
       <div class="q-title">${v.title||'Untitled'}</div>
       <div class="q-sub">By ${v.username||'Unknown'}</div>
       <div class="q-id">ID: ${v.id||'?'}</div>
@@ -244,24 +361,24 @@ function renderNextBatch(){
       <button class="share-btn">Share</button>
     `;
 
-    // clicking the whole card → play video
+    /* click whole card → play video */
     card.onclick = () => playInline(absIdx);
 
-    // share button handling (stop propagation so we don’t also play)
+    /* share button – independent from card click */
     const shareBtn = card.querySelector('.share-btn');
     shareBtn.addEventListener('click', e => {
       e.stopPropagation();
-      const link = `${window.location.origin}/${slugify(v.title)}?video_id=${encodeURIComponent(v.id)}`;
-      copyToClipboard(link);
+      shareVideo(v);
     });
 
     queueList.appendChild(card);
     requestAnimationFrame(()=>card.classList.add('visible'));
   });
+
   displayedCount += batch.length;
 
-  // All videos loaded → give a friendly end‑message
-  if(displayedCount >= videos.length){
+  // end‑of‑list message
+  if(displayedCount >= currentVideos.length){
     const endMsg = document.createElement('div');
     endMsg.className = 'loader';
     endMsg.textContent = '🎉 All videos loaded';
@@ -270,71 +387,62 @@ function renderNextBatch(){
 }
 
 /* -------------------------------------------------------------------------
- *  Render enough batches so that a given index exists in the DOM
- * ----------------------------------------------------------------------- */
-function renderBatchesUpTo(targetIdx){
-  while(displayedCount <= targetIdx && displayedCount < videos.length){
-    renderNextBatch();
-  }
-}
-
-/* -------------------------------------------------------------------------
- *  Infinite scroll – load more when scrolling near the bottom
+ *  Infinite scroll – load more when near bottom
  * ----------------------------------------------------------------------- */
 queueList.addEventListener('scroll',()=>{
   const nearBottom = queueList.scrollTop + queueList.clientHeight >= queueList.scrollHeight - 150;
-  if(nearBottom && displayedCount < videos.length){
+  if(nearBottom && displayedCount < currentVideos.length){
     renderNextBatch();
   }
 });
 
 /* -------------------------------------------------------------------------
- *  Play a video inline (replaces thumbnail with <video>)
+ *  Play a video inline (swap thumbnail for <video>)
  * ----------------------------------------------------------------------- */
 function playInline(idx){
   currentIndex = idx;
-  const v = videos[idx];
+  const video = currentVideos[idx];
   const items = document.querySelectorAll('.queue-item');
 
-  items.forEach((el,i)=>{
-    const isActive = i===idx;
-    el.classList.toggle('active', isActive);
-    const thumb = el.querySelector('.thumb');
+  items.forEach(item=>{
+    const itemIdx = Number(item.dataset.idx);
+    const isActive = itemIdx===idx;
+    item.classList.toggle('active', isActive);
+    const thumb = item.querySelector('.thumb');
 
     if(isActive){
-      // replace thumbnail with video element
       thumb.style.backgroundImage = '';
-      thumb.innerHTML = `
-        <video controls controlslist="nodownload" autoplay playsinline
-               style="width:100%;height:100%"
-               src="${v.mp4_link}"
-               poster="${v.archive_org_iframe_image_link}"></video>`;
+      thumb.innerHTML = `<video controls controlslist="nodownload" autoplay playsinline style="width:100%;height:100%" src="${video.mp4_link}" poster="${video.archive_org_iframe_image_link}"></video>`;
     }else{
-      // restore thumbnail background
       thumb.innerHTML = '';
-      if(videos[i]) thumb.style.backgroundImage = `url('${videos[i].archive_org_iframe_image_link}')`;
+      const bg = thumb.dataset.bg;
+      thumb.style.backgroundImage = bg ? `url('${bg}')` : '';
     }
   });
 
-  // Smooth‑scroll the active card into view
-  items[idx]?.scrollIntoView({behavior:'smooth',block:'center'});
+  const activeItem = queueList.querySelector('.queue-item[data-idx="'+idx+'"]');
+  activeItem?.scrollIntoView({behavior:'smooth',block:'center'});
 
-  // Record the click for analytics
-  if(v.id != null) store(Number(v.id));
+  if(video.id!=null) store(Number(video.id));
 }
 
 /* -------------------------------------------------------------------------
- *  Prev / Next navigation buttons
+ *  Share a video – Web Share API when available, otherwise copy to clipboard
  * ----------------------------------------------------------------------- */
-document.getElementById('prevBtn').onclick = ()=>{
-  if(videos.length) playInline((currentIndex-1+videos.length)%videos.length);
-};
-document.getElementById('nextBtn').onclick = ()=>{
-  if(videos.length) playInline((currentIndex+1)%videos.length);
-};
+function shareVideo(video){
+  const link = `${SHARE_BASE}?video_id=${encodeURIComponent(video.id)}`;
+  if(navigator.share){
+    navigator.share({
+      title: video.title || 'Video',
+      url:   link
+    }).catch(()=>copyToClipboard(link));
+  }else{
+    copyToClipboard(link);
+  }
+}
 
 /* -------------------------------------------------------------------------
- *  Clipboard helper – tries the modern API, falls back to a textarea hack
+ *  Clipboard helper
  * ----------------------------------------------------------------------- */
 function copyToClipboard(text){
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -348,7 +456,7 @@ function copyToClipboard(text){
 function fallbackCopy(text){
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.style.position = 'fixed'; // avoid scrolling to bottom
+  ta.style.position = 'fixed';
   document.body.appendChild(ta);
   ta.select();
   try{
@@ -361,14 +469,96 @@ function fallbackCopy(text){
 }
 
 /* -------------------------------------------------------------------------
+ *  Search handling – three fields in a single row
+ * ----------------------------------------------------------------------- */
+function performSearch(){
+  const idVal    = idInput.value.trim();
+  const titleVal = titleInput.value.trim().toLowerCase();
+  const userVal  = usernameInput.value.trim().toLowerCase();
+
+  // nothing typed → restore full list
+  if(!idVal && !titleVal && !userVal){
+    backToAllVideos();
+    return;
+  }
+
+  const filtered = allVideos.filter(v=>{
+    let ok = true;
+    if(idVal){
+      ok = ok && String(v.id) === idVal;               // exact ID match
+    }
+    if(titleVal){
+      ok = ok && (v.title||'').toLowerCase().includes(titleVal);
+    }
+    if(userVal){
+      ok = ok && (v.username||'').toLowerCase().includes(userVal);
+    }
+    return ok;
+  });
+
+  currentVideos   = filtered;
+  displayedCount  = 0;
+  queueList.innerHTML = '';
+  queueList.scrollTop = 0;
+
+  if(filtered.length===0){
+    const msg = document.createElement('div');
+    msg.className = 'loader';
+    msg.textContent = 'No videos found.';
+    queueList.appendChild(msg);
+  }else{
+    renderNextBatch();
+  }
+
+  backBtn.style.display = 'inline-block';
+}
+
+/* -------------------------------------------------------------------------
+ *  Return to the original (un‑filtered) list
+ * ----------------------------------------------------------------------- */
+function backToAllVideos(){
+  currentVideos   = allVideos;
+  displayedCount  = 0;
+  queueList.innerHTML = '';
+  queueList.scrollTop = 0;
+  renderNextBatch();
+
+  backBtn.style.display = 'none';
+  idInput.value = '';
+  titleInput.value = '';
+  usernameInput.value = '';
+}
+
+/* -------------------------------------------------------------------------
+ *  Upload overlay controls
+ * ----------------------------------------------------------------------- */
+uploadBtn.addEventListener('click',()=>{
+  uploadOverlay.classList.remove('hidden');
+});
+closeUploadBtn.addEventListener('click',()=>{
+  uploadOverlay.classList.add('hidden');
+});
+
+/* -------------------------------------------------------------------------
+ *  Search UI listeners
+ * ----------------------------------------------------------------------- */
+searchBtn.addEventListener('click',performSearch);
+[idInput, titleInput, usernameInput].forEach(inp=>{
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      performSearch();
+    }
+  });
+});
+backBtn.addEventListener('click',backToAllVideos);
+
+/* -------------------------------------------------------------------------
  *  Initialise the app
  * ----------------------------------------------------------------------- */
-window.addEventListener('load', async ()=>{
-  // 1️⃣ Send any stored click‑ids (analytics)
-  await sendStoredToBackend();
-
-  // 2️⃣ Load the video catalog
-  await loadVideos();
+window.addEventListener('load', async()=>{
+  await sendStoredToBackend();   // analytics
+  await loadVideos();            // fetch video catalog
 });
 </script>
 
