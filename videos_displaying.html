@@ -25,7 +25,7 @@ body{
   overflow-x:hidden;
 }
 
-/* ----------  Top bar (sticky, single row) ---------- */
+/* ----------  Top bar (sticky, single row – now wraps on narrow screens) ---------- */
 .top-bar{
   position:sticky;
   top:0;
@@ -36,7 +36,7 @@ body{
   background:var(--card);
   z-index:100;
   box-shadow:0 2px 6px rgba(0,0,0,0.5);
-  flex-wrap:nowrap;                /* keep everything on one line */
+  flex-wrap:wrap;                     /* allow wrapping on small devices */
 }
 .back-btn{
   display:none;
@@ -199,11 +199,58 @@ body{
 }
 .hidden{display:none;}
 
-/* Mobile tweaks */
+/* --------------------  RESPONSIVE ADJUSTMENTS  -------------------- */
 @media (max-width:640px){
+  /* make the top‑bar stack vertically */
+  .top-bar{
+    align-items:flex-start;
+  }
+
+  /* make the search bar full‑width and stack its fields */
+  .search-wrapper{
+    flex-basis:100%;
+    flex-direction:column;
+    margin-top:8px;
+  }
+  .search-wrapper input,
+  .search-wrapper button{
+    flex:none;
+    width:100%;
+    border-radius:0;
+  }
+  .search-wrapper input{
+    border-right:none;
+    border-bottom:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.05);
+  }
+  .search-wrapper input:last-of-type{
+    border-bottom:none;
+  }
+  .search-wrapper button{
+    border-left:none;
+    border-top:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.08);
+  }
+
+  /* upload button below the search bar, full width */
+  #uploadBtn{
+    width:100%;
+    margin-top:8px;
+    align-self:stretch;
+  }
+
+  /* back button (shown after a search) should also be full width */
+  .back-btn{
+    width:100%;
+    margin-bottom:8px;
+  }
+
+  /* keep any embedded iframe from other pages sized reasonably */
+  iframe{height:350px !important;}
+
+  /* heading sizes for tiny screens */
   h1{font-size:1.8rem}
   h2{font-size:1.25rem}
-  iframe{height:350px !important}
 }
 </style>
 </head>
@@ -420,7 +467,8 @@ function playInline(idx){
     }
   });
 
-  const activeItem = queueList.querySelector('.queue-item[data-idx="'+idx+'"]');
+  const activeItem = queueList.querySelector('.queue-item[data-index="'+idx+'"]') ||
+                     queueList.querySelector('.queue-item[data-idx="'+idx+'"]');
   activeItem?.scrollIntoView({behavior:'smooth',block:'center'});
 
   if(video.id!=null) store(Number(video.id));
@@ -469,7 +517,7 @@ function fallbackCopy(text){
 }
 
 /* -------------------------------------------------------------------------
- *  Search handling – three fields in a single row
+ *  Search handling – three fields in a single row (responsive)
  * ----------------------------------------------------------------------- */
 function performSearch(){
   const idVal    = idInput.value.trim();
